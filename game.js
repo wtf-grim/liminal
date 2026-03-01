@@ -864,7 +864,7 @@ class World {
       const seed = r.gx*777+r.gz*333+5;
       const rv = rng(seed);
       if(rv>.55) continue;  // slightly more props
-      const t = Math.floor(rng(seed+77)*5); // 5 prop types (no tables)
+      const t = Math.floor(rng(seed+77)*4); // 4 prop types
       const margin = .8;
       const px = wx+margin+rng(r.gx*11+r.gz)*(rw-margin*2);
       const pz = wz+margin+rng(r.gx*22+r.gz)*(rd-margin*2);
@@ -951,20 +951,6 @@ class World {
         }
         this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:count*.32,minZ:pz-.3,maxZ:pz+.3});
 
-      } else if(t===4) {
-        // Overturned/abandoned chair — just the seat on its side, eerie
-        const seat = new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.5), fabricMat);
-        seat.position.set(px, .28, pz);
-        seat.rotation.z = Math.PI/2 + (Math.random()-.5)*.4;
-        seat.rotation.y = rot;
-        this.scene.add(seat);
-        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(.04,.45,.04), metalMat);
-        leg1.position.set(px+.18, .42, pz); leg1.rotation.z=0.3;
-        this.scene.add(leg1);
-        const leg2 = new THREE.Mesh(new THREE.BoxGeometry(.04,.45,.04), metalMat);
-        leg2.position.set(px-.18, .35, pz); leg2.rotation.z=-0.25;
-        this.scene.add(leg2);
-        this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:.6,minZ:pz-.3,maxZ:pz+.3});
       }
     }
   }
