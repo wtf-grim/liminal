@@ -1062,10 +1062,18 @@ function init() {
 }
 
 function bindEvents() {
-  // Splash click → pointer lock
-  splashEl.addEventListener('click', () => {
+  // Exposed so index.html inline script can trigger entry directly from button click (valid user gesture)
+  window._enterGame = () => {
     audio.init();
     renderer.domElement.requestPointerLock();
+  };
+
+  // Fallback: clicking the splash after gate is gone also works
+  splashEl.addEventListener('click', () => {
+    if(window._solAddr) {
+      audio.init();
+      renderer.domElement.requestPointerLock();
+    }
   });
 
   document.addEventListener('pointerlockchange', () => {
@@ -1087,9 +1095,11 @@ function bindEvents() {
         scheduleDistantSounds();
       }
     } else {
-      // Pointer unlocked — show splash again
+      // Pointer unlocked — show splash again (sol-gate stays hidden, address already validated)
       splashEl.style.display='flex'; splashEl.style.opacity='1';
       splashEl.classList.remove('gone');
+      const gate = document.getElementById('sol-gate');
+      if(gate) gate.style.display = 'none';
     }
   });
 

@@ -300,13 +300,14 @@
         solInput.focus();
         return;
       }
-      // Valid — hide the gate, enable pointer lock click on the full splash
+      // Valid — hide gate, store address, enter game immediately
       solError.textContent = '';
       solGate.style.display = 'none';
-      // Store so game.js can read if needed
       window._solAddr = addr;
-      // Trigger pointer lock (game.js listens for click on #splash)
-      splashEl.click();
+      // Call directly — this IS the user gesture, so pointer lock will be granted
+      if(typeof window._enterGame === 'function') {
+        window._enterGame();
+      }
     });
   </script>
   <script type="module" src="game.js"></script>
