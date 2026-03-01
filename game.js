@@ -70,7 +70,7 @@ const MADNESS_LINES = [
 // WALL INSCRIPTION — private key written on the wall in black marker
 // Replace WALLET_KEY with the real key when provided.
 // ─────────────────────────────────────────────────────────────────────────────
-const WALLET_KEY = '5Kd3NBUAdUnhyzenEwVLy9pBKxSwXvE9FMPyR4UKZvpe6E3M8Lf';
+const WALLET_KEY = ''; // real CA to be inserted
 
 // Hint texts that appear alongside (or instead of) the key in random rooms
 const HINT_TEXTS = [
@@ -139,7 +139,7 @@ function buildWallWritings(rooms, scene) {
     usedFaces.forEach((face, wi) => {
       let text;
       const roll = Math.random();
-      if(roll < KEY_CHANCE) {
+      if(roll < KEY_CHANCE && WALLET_KEY) {
         text = WALLET_KEY;  // the actual key — very rare
       } else if(roll < 0.18) {
         text = LONG_WRITINGS[Math.floor(Math.random() * LONG_WRITINGS.length)];
