@@ -575,10 +575,10 @@ class World {
       const wz  = zOffsets[gz];
       rooms.push({
         gx, gz, wx, wz, rw, rd, rh,
-        openN: rng(s+1)>.28,
-        openS: rng(s+2)>.28,
-        openW: rng(s+3)>.28,
-        openE: rng(s+4)>.28,
+        openN: gz>0   && rng(s+1)>.28,
+        openS: gz<N-1 && rng(s+2)>.28,
+        openW: gx>0   && rng(s+3)>.28,
+        openE: gx<N-1 && rng(s+4)>.28,
         // big rooms always lit, small ones sometimes dark
         hasLight: rng(s+9) > (rw>10 ? 0.05 : 0.15),
         // number of extra lights for huge rooms
