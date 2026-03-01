@@ -170,15 +170,15 @@ function makeWallTextMesh(text, face, wx, wz, rw, rd, rh) {
   const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, cw, ch);
 
-  // Randomise writing style per inscription
+  // Randomise writing style per inscription — all Caveat handwritten font
   const styles = [
-    { fill:'rgba(8,6,3,0.94)',   font:'bold 26px monospace',  lineH:34 },  // dark marker
-    { fill:'rgba(30,18,0,0.88)', font:'italic 24px serif',    lineH:32 },  // pen scrawl
-    { fill:'rgba(60,20,0,0.80)', font:'bold 22px monospace',  lineH:30 },  // faded red
-    { fill:'rgba(4,4,4,0.96)',   font:'900 28px monospace',   lineH:36 },  // thick sharpie
+    { fill:'rgba(8,6,3,0.94)',   font:'700 32px "Caveat"', lineH:38 },  // dark heavy marker
+    { fill:'rgba(30,18,0,0.88)', font:'400 28px "Caveat"', lineH:34 },  // lighter pen scrawl
+    { fill:'rgba(55,18,0,0.82)', font:'600 30px "Caveat"', lineH:36 },  // reddish-brown ink
+    { fill:'rgba(4,4,4,0.97)',   font:'700 34px "Caveat"', lineH:40 },  // thick sharpie
   ];
   const style = isKey
-    ? { fill:'rgba(6,4,2,0.97)', font:'bold 20px monospace', lineH:28 }  // key: small, dense
+    ? { fill:'rgba(6,4,2,0.97)', font:'600 22px "Caveat"', lineH:30 }  // key: tighter, readable
     : styles[Math.floor(Math.random() * styles.length)];
 
   ctx.fillStyle = style.fill;

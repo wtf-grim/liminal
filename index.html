@@ -6,7 +6,7 @@
   <title>LIMINAL</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&family=Caveat:wght@400;600;700&display=swap" rel="stylesheet"/>
   <style>
     :root {
       --y:  #c8b400;
@@ -223,6 +223,8 @@
   </style>
 </head>
 <body>
+  <!-- Force Caveat font to load before canvas text renders -->
+  <div style="font-family:'Caveat';position:absolute;opacity:0;pointer-events:none">.</div>
   <div id="cur"></div>
 
   <!-- TITLE SPLASH -->
