@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LIMINAL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --y:  #c8b400;
+      --yd: #6b5e00;
+      --yp: #e8d84a;
+      --bg: #070600;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; cursor:none; }
+
+    /* ── canvas ── */
+    #app {
+      position:fixed; inset:0;
+      opacity:0;
+      transition: opacity 2s;
+    }
+    #app.visible { opacity:1; }
+    #app canvas { display:block; width:100%!important; height:100%!important; }
+
+    /* ── overlays ── */
+    #vignette {
+      position:fixed; inset:0; z-index:10; pointer-events:none;
+      background: radial-gradient(ellipse at 50% 55%,
+        transparent 28%, rgba(0,0,0,.55) 68%, rgba(0,0,0,.95) 100%);
+    }
+    #scanlines {
+      position:fixed; inset:0; z-index:11; pointer-events:none;
+      background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px);
+    }
+    #grain {
+      position:fixed; inset:0; z-index:12; pointer-events:none;
+      opacity:.055;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      animation:gshift .18s steps(1) infinite;
+    }
+    #chroma {
+      position:fixed; inset:0; z-index:13; pointer-events:none;
+      mix-blend-mode:screen; opacity:0;
+      transition:opacity 1s;
+    }
+    #flicker-layer {
+      position:fixed; inset:0; z-index:9; pointer-events:none;
+      background:rgba(180,160,0,.012);
+      animation:lflicker .09s steps(1) infinite;
+    }
+    #white-flash {
+      position:fixed; inset:0; z-index:50; pointer-events:none;
+      background:#fff; opacity:0;
+      transition:opacity .08s;
+    }
+    #entity-ring {
+      position:fixed; inset:0; z-index:14; pointer-events:none;
+      border:0 solid transparent;
+      box-shadow: inset 0 0 0 rgba(200,0,0,0);
+      transition: box-shadow .4s;
+    }
+    /* Breathing overlay — pulses as sanity drops */
+    #breathe {
+      position:fixed; inset:0; z-index:8; pointer-events:none;
+      background: radial-gradient(ellipse at 50% 50%,
+        transparent 20%, rgba(0,0,0,.55) 100%);
+      opacity:0;
+      transition:opacity .1s;
+    }
+
+    /* ── story panel ── */
+    #story {
+      position:fixed; bottom:0; left:0; right:0; z-index:30;
+      pointer-events:none;
+      display:flex; flex-direction:column; align-items:center;
+      padding-bottom:40px;
+      gap:0;
+    }
+    #story-line {
+      font-family:'Special Elite', cursive;
+      font-size:clamp(14px,2.2vw,20px);
+      color:var(--yp);
+      letter-spacing:.06em;
+      line-height:1.6;
+      text-align:center;
+      max-width:600px;
+      text-shadow:0 0 30px rgba(200,180,0,.6), 0 2px 8px rgba(0,0,0,.9);
+      opacity:0;
+      transform:translateY(8px);
+      transition:opacity .8s, transform .8s;
+      padding:0 24px;
+    }
+    #story-line.show { opacity:1; transform:translateY(0); }
+
+    /* ── sanity bar ── */
+    #hud {
+      position:fixed; bottom:40px; left:36px; z-index:30;
+      pointer-events:none;
+      font-family:'Share Tech Mono',monospace;
+      display:none;
+    }
+    #hud-label { font-size:9px; letter-spacing:.22em; color:#2a2400; margin-bottom:4px; }
+    #sanity-track { width:100px; height:1px; background:#111; }
+    #sanity-bar   { height:1px; background:var(--y); box-shadow:0 0 4px var(--y); transition:width 1s; }
+
+    /* ── title splash ── */
+    #splash {
+      position:fixed; inset:0; z-index:60;
+      background:#000;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:16px;
+      transition:opacity 1.8s;
+    }
+    #splash .t {
+      font-family:'Special Elite',cursive;
+      font-size:clamp(70px,14vw,140px);
+      color:var(--y);
+      letter-spacing:.45em;
+      text-shadow:0 0 50px var(--y), 0 0 100px var(--yd);
+      animation:flk 3s infinite;
+    }
+    #splash .sub {
+      font-family:'Share Tech Mono',monospace;
+      font-size:12px; letter-spacing:.3em;
+      color:var(--yd);
+    }
+    #splash .hint {
+      position:absolute; bottom:32px;
+      font-family:'Share Tech Mono',monospace;
+      font-size:11px; letter-spacing:.2em;
+      color:#2a2200;
+      text-align:center; line-height:2;
+    }
+    #splash .click-prompt {
+      margin-top:32px;
+      font-family:'Share Tech Mono',monospace;
+      font-size:13px; letter-spacing:.25em; color:var(--yd);
+      animation:blnk 1.1s step-end infinite;
+    }
+    #splash.gone { opacity:0; pointer-events:none; }
+
+    /* ── cursor ── */
+    #cur {
+      position:fixed; z-index:999;
+      width:5px; height:5px;
+      border:1px solid rgba(200,180,0,.5);
+      border-radius:50%; pointer-events:none;
+      transform:translate(-50%,-50%);
+    }
+
+    /* ── controls overlay ── */
+    #controls {
+      position:fixed; top:24px; right:28px; z-index:30;
+      pointer-events:none;
+      font-family:'Share Tech Mono',monospace;
+      font-size:9px; letter-spacing:.18em;
+      color:#252000; line-height:2.2;
+      text-align:right;
+      display:none;
+    }
+
+    /* ── animations ── */
+    @keyframes flk {
+      0%,94%,100%{opacity:1} 95%{opacity:.3} 96%{opacity:1} 97%{opacity:.05} 98%{opacity:.8}
+    }
+    @keyframes blnk { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes gshift {
+      0%{transform:translate(0,0)} 20%{transform:translate(-1px,1px)} 40%{transform:translate(1px,-1px)}
+      60%{transform:translate(2px,0)} 80%{transform:translate(-2px,1px)} 100%{transform:translate(0,0)}
+    }
+    @keyframes lflicker {
+      0%{opacity:.012} 14%{opacity:0} 15%{opacity:.018} 28%{opacity:0}
+      55%{opacity:.01} 56%{opacity:0} 78%{opacity:.012} 100%{opacity:0}
+    }
+  </style>
+</head>
+<body>
+  <div id="cur"></div>
+
+  <!-- TITLE SPLASH -->
+  <div id="splash">
+    <div class="t">LIMINAL</div>
+    <div class="sub">level 0 — the backrooms</div>
+    <div class="click-prompt">[ click to enter ]</div>
+    <div class="hint">
+      WASD — move &nbsp;|&nbsp; MOUSE — look &nbsp;|&nbsp; SHIFT — run<br/>
+      you noclipped out of reality
+    </div>
+  </div>
+
+  <!-- GAME CANVAS -->
+  <div id="app"></div>
+
+  <!-- OVERLAYS -->
+  <div id="breathe"></div>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+  <div id="grain"></div>
+  <div id="chroma"></div>
+  <div id="flicker-layer"></div>
+  <div id="white-flash"></div>
+  <div id="entity-ring"></div>
+
+  <!-- STORY TEXT -->
+  <div id="story"><div id="story-line"></div></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-label">SANITY</div>
+    <div id="sanity-track"><div id="sanity-bar" style="width:100%"></div></div>
+  </div>
+
+  <!-- CONTROLS HINT -->
+  <div id="controls">
+    W A S D — MOVE<br/>
+    MOUSE — LOOK<br/>
+    SHIFT — RUN
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
