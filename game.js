@@ -864,7 +864,7 @@ class World {
       const seed = r.gx*777+r.gz*333+5;
       const rv = rng(seed);
       if(rv>.55) continue;  // slightly more props
-      const t = Math.floor(rng(seed+77)*6); // 6 prop types
+      const t = Math.floor(rng(seed+77)*5); // 5 prop types (no tables)
       const margin = .8;
       const px = wx+margin+rng(r.gx*11+r.gz)*(rw-margin*2);
       const pz = wz+margin+rng(r.gx*22+r.gz)*(rd-margin*2);
@@ -885,32 +885,6 @@ class World {
         this.walls.push({minX:px-bw/2,maxX:px+bw/2,minY:0,maxY:bh,minZ:pz-bd/2,maxZ:pz+bd/2});
 
       } else if(t===1) {
-        // Office table — wood top, metal legs
-        const tw=1.4, td=0.7, legH=0.72;
-        const top=new THREE.Mesh(new THREE.BoxGeometry(tw, .045, td), woodMat);
-        top.position.set(px, legH+.022, pz);
-        top.rotation.y = rot;
-        this.scene.add(top);
-        // Metal legs — angled slightly inward for realism
-        const legGeo = new THREE.BoxGeometry(.04, legH, .04);
-        const cr = Math.cos(rot), sr = Math.sin(rot);
-        [[tw/2-.09, td/2-.09],[-(tw/2-.09), td/2-.09],
-         [tw/2-.09,-(td/2-.09)],[-(tw/2-.09),-(td/2-.09)]].forEach(([lx,lz])=>{
-          const leg = new THREE.Mesh(legGeo, metalMat);
-          leg.position.set(
-            px + lx*cr - lz*sr,
-            legH/2,
-            pz + lx*sr + lz*cr
-          );
-          this.scene.add(leg);
-        });
-        // Crossbar stretcher near floor
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(tw*.75,.03,.03), metalMat);
-        bar.position.set(px, .22, pz); bar.rotation.y=rot;
-        this.scene.add(bar);
-        this.walls.push({minX:px-tw/2,maxX:px+tw/2,minY:0,maxY:legH+.05,minZ:pz-td/2,maxZ:pz+td/2});
-
-      } else if(t===2) {
         // Office chair — 5-star base, seat, backrest
         const seatH = .48, backH = .5;
         // Seat
@@ -940,7 +914,7 @@ class World {
         }
         this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:seatH+backH,minZ:pz-.3,maxZ:pz+.3});
 
-      } else if(t===3) {
+      } else if(t===2) {
         // Filing cabinet — 2-drawer metal unit
         const cw=.48, ch=1.05, cd=.58;
         const cab = new THREE.Mesh(new THREE.BoxGeometry(cw,ch,cd), metalMat);
@@ -962,7 +936,7 @@ class World {
         });
         this.walls.push({minX:px-cw/2,maxX:px+cw/2,minY:0,maxY:ch,minZ:pz-cd/2,maxZ:pz+cd/2});
 
-      } else if(t===4 && rw>7) {
+      } else if(t===3 && rw>7) {
         // Stacked boxes — big rooms only, up to 4 high
         const count = 2 + Math.floor(rng(seed+55)*3);
         const bw=.48, bd=.46;
@@ -977,7 +951,7 @@ class World {
         }
         this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:count*.32,minZ:pz-.3,maxZ:pz+.3});
 
-      } else if(t===5) {
+      } else if(t===4) {
         // Overturned/abandoned chair — just the seat on its side, eerie
         const seat = new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.5), fabricMat);
         seat.position.set(px, .28, pz);
