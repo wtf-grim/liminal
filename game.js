@@ -80,27 +80,78 @@ const HINT_TEXTS = [
   'still here?\ncheck the walls.',
   'someone left it here.\nfor you.',
   'the key is real.\nthe exit is not.',
+  'LEVEL 0\nno exit.',
+  'day 47.\nstill walking.',
+  'follow the hum.',
+  'do not\nlook back.',
+  'it was here\ntoo.',
+  'i found it.\nthen i lost it.',
+  'the walls\nare moving.',
+  'COUNT THE DOORS\ncount them again',
+  'you are not\nthe first.',
+  'noclipped\n2019.04.11',
+  'the carpet\nis not wet.',
+  'HELP\nplease',
+  'going in circles.\nnot lost.',
+  'i can hear\nbreathing.',
+  'check behind\nyou.',
+  'the lights\nnever change.',
+  'it follows sound.',
+  'day ???\nroom ???',
+  'i scratched it\ninto the wall\nso i\'d remember.',
+  'the smell\nis getting worse.',
+  'turn around.',
+  'write it down.\nyou will forget.',
+  'every room\nis the same room.',
+  'still here?',
 ];
 
-// Called after world.build() — places key/hints on ~5% of room walls at random.
-// Uses Math.random() (not rng()) so placement differs every session.
+// Multi-line longer inscriptions (scribblings, notes left behind)
+const LONG_WRITINGS = [
+  'if you find this:\nthe key is on a wall\nsomewhere near\nthe big room.\ni checked.',
+  'day 1: found food\nday 3: food gone\nday ???: lost count\nstill walking',
+  'the humming changes\npitch near exits.\nor i think it does.\ni\'m not sure anymore.',
+  'RULES:\n1. don\'t run\n2. don\'t stop\n3. check every wall\n4. there is no 4',
+  'left → left → straight\nright → left → straight\nthat\'s how i got here\ncan\'t get back',
+  'someone scratched\nlines in the floor.\ni\'ve counted them.\n217. then 218.',
+  'the fluorescents\nbuzz in F minor.\ni timed it.\n60 cycles per second.\nalways.',
+];
+
+// Called after world.build() — places writings on ~30% of room walls.
+// Key itself appears in only ~5% of rooms — you have to work for it.
+// Uses Math.random() so placement differs every session.
 function buildWallWritings(rooms, scene) {
-  const KEY_CHANCE = 0.05;
-  // Map face name to room's openX property
+  const KEY_CHANCE     = 0.05;  // actual key — rare
+  const WRITING_CHANCE = 0.30;  // any writing at all — common enough to feel inhabited
   const faceOpen = { N:'openN', S:'openS', W:'openW', E:'openE' };
   const allFaces = ['N','S','W','E'];
+
   rooms.forEach(r => {
-    if(Math.random() > KEY_CHANCE) return; // 95% of rooms: no writing
-    // Only write on SOLID walls (no door opening)
+    if(Math.random() > WRITING_CHANCE) return;
+    // Solid walls only
     const solidFaces = allFaces.filter(f => !r[faceOpen[f]]);
-    if(solidFaces.length === 0) return; // every wall has a door — skip
-    const face = solidFaces[Math.floor(Math.random() * solidFaces.length)];
-    // 60% chance: show the actual key; 40%: show a cryptic hint
-    const text = Math.random() < 0.6
-      ? WALLET_KEY
-      : HINT_TEXTS[Math.floor(Math.random() * HINT_TEXTS.length)];
-    const mesh = makeWallTextMesh(text, face, r.wx, r.wz, r.rw, r.rd, r.rh);
-    scene.add(mesh);
+    if(solidFaces.length === 0) return;
+
+    // Some rooms get writing on multiple walls (rare — feels obsessive)
+    const wallCount = Math.random() < 0.15 ? Math.min(2, solidFaces.length) : 1;
+    const usedFaces = [...solidFaces].sort(()=>Math.random()-.5).slice(0, wallCount);
+
+    usedFaces.forEach((face, wi) => {
+      let text;
+      const roll = Math.random();
+      if(roll < KEY_CHANCE) {
+        text = WALLET_KEY;  // the actual key — very rare
+      } else if(roll < 0.18) {
+        text = LONG_WRITINGS[Math.floor(Math.random() * LONG_WRITINGS.length)];
+      } else {
+        text = HINT_TEXTS[Math.floor(Math.random() * HINT_TEXTS.length)];
+      }
+      // Second wall in same room: always a short hint, never the key
+      if(wi > 0) text = HINT_TEXTS[Math.floor(Math.random() * HINT_TEXTS.length)];
+
+      const mesh = makeWallTextMesh(text, face, r.wx, r.wz, r.rw, r.rd, r.rh);
+      scene.add(mesh);
+    });
   });
 }
 
@@ -108,28 +159,55 @@ function buildWallWritings(rooms, scene) {
 // face: 'N' | 'S' | 'W' | 'E'
 // wx,wz = room world origin; rw,rd,rh = room dimensions
 function makeWallTextMesh(text, face, wx, wz, rw, rd, rh) {
-  // Canvas for the text texture
-  const cw = 512, ch = 256;
+  const lines = text.split('\n');
+  const isLong = lines.length > 3;
+  const isKey  = text === WALLET_KEY;
+
+  // Canvas — taller for multi-line content
+  const cw = 512, ch = isLong ? 384 : (lines.length > 2 ? 300 : 220);
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const ctx = c.getContext('2d');
-
-  // Transparent background so only the text is visible on the wall
   ctx.clearRect(0, 0, cw, ch);
 
-  // Black marker-style text — messy, hand-written feel
-  ctx.fillStyle = 'rgba(10,8,5,0.92)';
-  ctx.font = 'bold 28px monospace';
+  // Randomise writing style per inscription
+  const styles = [
+    { fill:'rgba(8,6,3,0.94)',   font:'bold 26px monospace',  lineH:34 },  // dark marker
+    { fill:'rgba(30,18,0,0.88)', font:'italic 24px serif',    lineH:32 },  // pen scrawl
+    { fill:'rgba(60,20,0,0.80)', font:'bold 22px monospace',  lineH:30 },  // faded red
+    { fill:'rgba(4,4,4,0.96)',   font:'900 28px monospace',   lineH:36 },  // thick sharpie
+  ];
+  const style = isKey
+    ? { fill:'rgba(6,4,2,0.97)', font:'bold 20px monospace', lineH:28 }  // key: small, dense
+    : styles[Math.floor(Math.random() * styles.length)];
+
+  ctx.fillStyle = style.fill;
+  ctx.font = style.font;
   ctx.textAlign = 'center';
 
-  // Handle multi-line (split on \n)
-  const lines = text.split('\n');
-  const lineH = 36;
-  const startY = ch / 2 - (lines.length - 1) * lineH / 2;
+  const startY = ch / 2 - (lines.length - 1) * style.lineH / 2;
   lines.forEach((line, i) => {
-    // Slightly jittered position per character for hand-written feel
-    ctx.fillText(line, cw / 2 + (Math.random() - 0.5) * 2, startY + i * lineH);
+    // Per-line jitter for handwritten feel
+    const jx = (Math.random() - 0.5) * 3;
+    const jy = (Math.random() - 0.5) * 2;
+    ctx.save();
+    ctx.translate(cw / 2 + jx, startY + i * style.lineH + jy);
+    // Slight random rotation per line — looks scrawled
+    ctx.rotate((Math.random() - 0.5) * 0.018);
+    ctx.fillText(line, 0, 0);
+    ctx.restore();
   });
+
+  // Scratched underline on single-word messages for emphasis
+  if(lines.length === 1 && !isKey && Math.random() < 0.4) {
+    const w = ctx.measureText(lines[0]).width;
+    ctx.strokeStyle = style.fill;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cw/2 - w/2 - 4, startY + 12);
+    ctx.lineTo(cw/2 + w/2 + 4, startY + 12 + (Math.random()-0.5)*3);
+    ctx.stroke();
+  }
 
   const tex = new THREE.CanvasTexture(c);
   tex.needsUpdate = true;
@@ -141,31 +219,31 @@ function makeWallTextMesh(text, face, wx, wz, rw, rd, rh) {
     fog: false,
   });
 
-  // Plane dimensions — 1.4 wide × 0.7 tall, readable at wall level
-  const planeW = Math.min(rw * 0.55, 2.2);
-  const planeH = 0.75;
+  // Plane size scales with content
+  const planeW = Math.min(rw * 0.55, isKey ? 2.6 : 2.0);
+  const planeH = isLong ? 1.1 : (lines.length > 2 ? 0.88 : 0.68);
   const geo = new THREE.PlaneGeometry(planeW, planeH);
   const mesh = new THREE.Mesh(geo, mat);
 
-  // Eye-level height
-  const eyeY = 1.55;
-  const offset = 0.07; // slight gap off wall surface
+  // Eye-level, slight random horizontal offset so not always dead-center
+  const eyeY  = 1.45 + (Math.random() - 0.5) * 0.25;
+  const offset = 0.07;
+  const hShift = (Math.random() - 0.5) * Math.min(rw, rd) * 0.2;
 
   switch(face) {
     case 'N':
-      mesh.position.set(wx + rw / 2, eyeY, wz + offset);
-      // North wall faces +Z, so plane normal points +Z
+      mesh.position.set(wx + rw / 2 + hShift, eyeY, wz + offset);
       break;
     case 'S':
-      mesh.position.set(wx + rw / 2, eyeY, wz + rd - offset);
+      mesh.position.set(wx + rw / 2 + hShift, eyeY, wz + rd - offset);
       mesh.rotation.y = Math.PI;
       break;
     case 'W':
-      mesh.position.set(wx + offset, eyeY, wz + rd / 2);
+      mesh.position.set(wx + offset, eyeY, wz + rd / 2 + hShift);
       mesh.rotation.y = Math.PI / 2;
       break;
     case 'E':
-      mesh.position.set(wx + rw - offset, eyeY, wz + rd / 2);
+      mesh.position.set(wx + rw - offset, eyeY, wz + rd / 2 + hShift);
       mesh.rotation.y = -Math.PI / 2;
       break;
   }
@@ -322,6 +400,54 @@ function makeCeilTex() {
   const t = new THREE.CanvasTexture(c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1.5,1.5);
   return t;
+}
+
+// Wood grain texture for office furniture
+function makeWoodTex() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const x = c.getContext('2d');
+  // Base: warm mid-brown
+  x.fillStyle = '#7a5830'; x.fillRect(0,0,256,256);
+  // Grain lines — long horizontal streaks of varying lightness
+  for(let i=0; i<256; i+=2) {
+    const v = Math.sin(i*0.31+1.2)*12 + Math.sin(i*0.07)*8;
+    x.strokeStyle = `rgba(${v>0?255:0},${Math.abs(v)|0},0,${(Math.abs(v)/30).toFixed(2)})`;
+    x.lineWidth = 1 + Math.random()*0.5;
+    x.beginPath(); x.moveTo(0,i); x.lineTo(256,i+(Math.random()-0.5)*3); x.stroke();
+  }
+  // Knots — occasional dark oval swirls
+  [[60,80,8],[190,140,6],[130,200,5]].forEach(([cx,cy,r])=>{
+    const g=x.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,'rgba(20,10,0,.7)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=g; x.beginPath(); x.ellipse(cx,cy,r,r*1.4,0.3,0,Math.PI*2); x.fill();
+  });
+  // Slight varnish sheen
+  const sh=x.createLinearGradient(0,0,256,0);
+  sh.addColorStop(0,'rgba(255,220,160,.04)'); sh.addColorStop(0.5,'rgba(255,240,200,.10)'); sh.addColorStop(1,'rgba(255,220,160,.04)');
+  x.fillStyle=sh; x.fillRect(0,0,256,256);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1,1);
+  return t;
+}
+
+// Metal texture for chair legs, cabinet body
+function makeMetalTex() {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#8a8a82'; x.fillRect(0,0,128,128);
+  // Brushed streaks
+  for(let i=0; i<128; i+=1) {
+    const bright = (Math.random()-0.5)*18;
+    x.strokeStyle = `rgba(${bright>0?255:0},${bright>0?255:0},${bright>0?255:0},${(Math.abs(bright)/40).toFixed(2)})`;
+    x.lineWidth = 0.5;
+    x.beginPath(); x.moveTo(0,i); x.lineTo(128,i); x.stroke();
+  }
+  // Edge shadow
+  const eg=x.createLinearGradient(0,0,128,0);
+  eg.addColorStop(0,'rgba(0,0,0,.25)'); eg.addColorStop(0.08,'rgba(0,0,0,0)');
+  eg.addColorStop(0.92,'rgba(0,0,0,0)'); eg.addColorStop(1,'rgba(0,0,0,.25)');
+  x.fillStyle=eg; x.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
 }
 
 // Bright white rectangular fluorescent panel texture (for the fixture mesh)
@@ -726,46 +852,145 @@ class World {
   }
 
   _addProps(wallMat) {
-    const propMat = new THREE.MeshLambertMaterial({ color:0x5a4818 });
+    const woodTex  = makeWoodTex();
+    const metalTex = makeMetalTex();
+    const woodMat  = new THREE.MeshLambertMaterial({ color:0xc8a060, map:woodTex });
+    const metalMat = new THREE.MeshLambertMaterial({ color:0xa0a098, map:metalTex });
+    const darkMat  = new THREE.MeshLambertMaterial({ color:0x302818 }); // dark wood / old box
+    const fabricMat= new THREE.MeshLambertMaterial({ color:0x5a5040 }); // worn chair seat
+
     for(const r of (this.rooms||[])) {
       const {wx,wz,rw,rd} = r;
       const seed = r.gx*777+r.gz*333+5;
       const rv = rng(seed);
-      if(rv>.6) continue;
-      const t = Math.floor(rv*5);
+      if(rv>.55) continue;  // slightly more props
+      const t = Math.floor(rng(seed+77)*6); // 6 prop types
       const margin = .8;
       const px = wx+margin+rng(r.gx*11+r.gz)*(rw-margin*2);
       const pz = wz+margin+rng(r.gx*22+r.gz)*(rd-margin*2);
+      const rot = rng(seed+88)*Math.PI*2;
 
       if(t===0) {
-        const bw=.4+rng(seed+1)*.3, bh=.28+rng(seed+2)*.25, bd=.4+rng(seed+3)*.3;
-        const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),propMat);
-        m.position.set(px,bh/2,pz);
+        // Cardboard box — slightly worn, random size
+        const bw=.38+rng(seed+1)*.28, bh=.30+rng(seed+2)*.22, bd=.38+rng(seed+3)*.28;
+        const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), darkMat);
+        m.position.set(px, bh/2, pz);
+        m.rotation.y = rot;
         this.scene.add(m);
+        // Flap crease lines drawn as thin dark strips on top
+        const flapMat = new THREE.MeshLambertMaterial({ color:0x201408 });
+        const flap = new THREE.Mesh(new THREE.BoxGeometry(bw*.01, bh*.01, bd), flapMat);
+        flap.position.set(px, bh+0.001, pz);
+        this.scene.add(flap);
         this.walls.push({minX:px-bw/2,maxX:px+bw/2,minY:0,maxY:bh,minZ:pz-bd/2,maxZ:pz+bd/2});
+
       } else if(t===1) {
-        // Table
-        const tw=.9, td=.55, legH=.73;
-        const top=new THREE.Mesh(new THREE.BoxGeometry(tw,.04,td),propMat);
-        top.position.set(px,.75,pz);
+        // Office table — wood top, metal legs
+        const tw=1.4, td=0.7, legH=0.72;
+        const top=new THREE.Mesh(new THREE.BoxGeometry(tw, .045, td), woodMat);
+        top.position.set(px, legH+.022, pz);
+        top.rotation.y = rot;
         this.scene.add(top);
-        const legGeo=new THREE.BoxGeometry(.06,legH,.06);
-        [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{
-          const leg=new THREE.Mesh(legGeo,propMat);
-          leg.position.set(px+sx*(tw/2-.07), legH/2, pz+sz*(td/2-.07));
+        // Metal legs — angled slightly inward for realism
+        const legGeo = new THREE.BoxGeometry(.04, legH, .04);
+        const cr = Math.cos(rot), sr = Math.sin(rot);
+        [[tw/2-.09, td/2-.09],[-(tw/2-.09), td/2-.09],
+         [tw/2-.09,-(td/2-.09)],[-(tw/2-.09),-(td/2-.09)]].forEach(([lx,lz])=>{
+          const leg = new THREE.Mesh(legGeo, metalMat);
+          leg.position.set(
+            px + lx*cr - lz*sr,
+            legH/2,
+            pz + lx*sr + lz*cr
+          );
           this.scene.add(leg);
         });
-        this.walls.push({minX:px-tw/2,maxX:px+tw/2,minY:0,maxY:.77,minZ:pz-td/2,maxZ:pz+td/2});
-      } else if(t===2 && rw>8) {
-        // Big rooms get stacked boxes
-        const bw=.5, bd=.5;
-        for(let i=0;i<3;i++){
-          const bh=.32;
-          const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),propMat);
-          m.position.set(px,bh/2+i*bh,pz); m.rotation.y=rng(seed+i)*.5;
+        // Crossbar stretcher near floor
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(tw*.75,.03,.03), metalMat);
+        bar.position.set(px, .22, pz); bar.rotation.y=rot;
+        this.scene.add(bar);
+        this.walls.push({minX:px-tw/2,maxX:px+tw/2,minY:0,maxY:legH+.05,minZ:pz-td/2,maxZ:pz+td/2});
+
+      } else if(t===2) {
+        // Office chair — 5-star base, seat, backrest
+        const seatH = .48, backH = .5;
+        // Seat
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(.52,.06,.52), fabricMat);
+        seat.position.set(px, seatH, pz);
+        this.scene.add(seat);
+        // Backrest
+        const back = new THREE.Mesh(new THREE.BoxGeometry(.48,.52,.055), fabricMat);
+        back.position.set(px, seatH + backH/2 + .03, pz - .23);
+        back.rotation.y = rot;
+        this.scene.add(back);
+        // Center column
+        const col = new THREE.Mesh(new THREE.BoxGeometry(.06,.45,.06), metalMat);
+        col.position.set(px, .22, pz);
+        this.scene.add(col);
+        // 5 base arms radiating out
+        for(let i=0;i<5;i++){
+          const ang = (i/5)*Math.PI*2;
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(.34,.03,.04), metalMat);
+          arm.position.set(px+Math.cos(ang)*.18, .06, pz+Math.sin(ang)*.18);
+          arm.rotation.y = -ang;
+          this.scene.add(arm);
+          // Wheel nub at end of each arm
+          const wheel = new THREE.Mesh(new THREE.BoxGeometry(.05,.04,.05), darkMat);
+          wheel.position.set(px+Math.cos(ang)*.34, .04, pz+Math.sin(ang)*.34);
+          this.scene.add(wheel);
+        }
+        this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:seatH+backH,minZ:pz-.3,maxZ:pz+.3});
+
+      } else if(t===3) {
+        // Filing cabinet — 2-drawer metal unit
+        const cw=.48, ch=1.05, cd=.58;
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(cw,ch,cd), metalMat);
+        cab.position.set(px, ch/2, pz);
+        this.scene.add(cab);
+        // Drawer divider lines (dark strips)
+        [.52,.02].forEach(yFrac=>{
+          const div = new THREE.Mesh(new THREE.BoxGeometry(cw+.002,.012,cd+.002),
+            new THREE.MeshLambertMaterial({color:0x303028}));
+          div.position.set(px, yFrac*ch, pz);
+          this.scene.add(div);
+        });
+        // Drawer handles — two small horizontal bars
+        [.76,.27].forEach(yFrac=>{
+          const handle = new THREE.Mesh(new THREE.BoxGeometry(.18,.025,.025),
+            new THREE.MeshLambertMaterial({color:0xc8c8b8}));
+          handle.position.set(px, yFrac*ch, pz-cd/2-.015);
+          this.scene.add(handle);
+        });
+        this.walls.push({minX:px-cw/2,maxX:px+cw/2,minY:0,maxY:ch,minZ:pz-cd/2,maxZ:pz+cd/2});
+
+      } else if(t===4 && rw>7) {
+        // Stacked boxes — big rooms only, up to 4 high
+        const count = 2 + Math.floor(rng(seed+55)*3);
+        const bw=.48, bd=.46;
+        for(let i=0;i<count;i++){
+          const bh=.30+rng(seed+i+10)*.08;
+          const offX = (rng(seed+i+20)-.5)*.06;
+          const offZ = (rng(seed+i+30)-.5)*.06;
+          const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), i%2===0 ? darkMat : woodMat);
+          m.position.set(px+offX, bh/2+i*.30, pz+offZ);
+          m.rotation.y = rng(seed+i+40)*0.35;
           this.scene.add(m);
         }
-        this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:1.0,minZ:pz-.3,maxZ:pz+.3});
+        this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:count*.32,minZ:pz-.3,maxZ:pz+.3});
+
+      } else if(t===5) {
+        // Overturned/abandoned chair — just the seat on its side, eerie
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.5), fabricMat);
+        seat.position.set(px, .28, pz);
+        seat.rotation.z = Math.PI/2 + (Math.random()-.5)*.4;
+        seat.rotation.y = rot;
+        this.scene.add(seat);
+        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(.04,.45,.04), metalMat);
+        leg1.position.set(px+.18, .42, pz); leg1.rotation.z=0.3;
+        this.scene.add(leg1);
+        const leg2 = new THREE.Mesh(new THREE.BoxGeometry(.04,.45,.04), metalMat);
+        leg2.position.set(px-.18, .35, pz); leg2.rotation.z=-0.25;
+        this.scene.add(leg2);
+        this.walls.push({minX:px-.3,maxX:px+.3,minY:0,maxY:.6,minZ:pz-.3,maxZ:pz+.3});
       }
     }
   }

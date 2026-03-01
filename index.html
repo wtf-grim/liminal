@@ -135,11 +135,55 @@
       color:#2a2200;
       text-align:center; line-height:2;
     }
-    #splash .click-prompt {
-      margin-top:32px;
+    #splash .ca-line {
       font-family:'Share Tech Mono',monospace;
-      font-size:13px; letter-spacing:.25em; color:var(--yd);
-      animation:blnk 1.1s step-end infinite;
+      font-size:10px; letter-spacing:.18em;
+      color:#3a3200;
+      margin-top:2px;
+    }
+    /* Solana address input gate */
+    #sol-gate {
+      margin-top:28px;
+      display:flex; flex-direction:column; align-items:center; gap:10px;
+    }
+    #sol-gate label {
+      font-family:'Share Tech Mono',monospace;
+      font-size:10px; letter-spacing:.22em;
+      color:var(--yd);
+    }
+    #sol-input {
+      background:transparent;
+      border:none; border-bottom:1px solid var(--yd);
+      color:var(--yp);
+      font-family:'Share Tech Mono',monospace;
+      font-size:12px; letter-spacing:.1em;
+      width:320px; max-width:80vw;
+      padding:6px 4px;
+      outline:none;
+      text-align:center;
+      caret-color:var(--yp);
+    }
+    #sol-input::placeholder { color:#2a2400; }
+    #sol-error {
+      font-family:'Share Tech Mono',monospace;
+      font-size:10px; letter-spacing:.15em;
+      color:#8a2200;
+      min-height:14px;
+      animation:blnk .6s step-end infinite;
+    }
+    #sol-enter {
+      margin-top:4px;
+      background:transparent; border:1px solid var(--yd);
+      color:var(--yd);
+      font-family:'Share Tech Mono',monospace;
+      font-size:11px; letter-spacing:.28em;
+      padding:7px 22px;
+      cursor:pointer;
+      transition:color .2s, border-color .2s, text-shadow .2s;
+    }
+    #sol-enter:hover {
+      color:var(--yp); border-color:var(--yp);
+      text-shadow:0 0 14px var(--y);
     }
     #splash.gone { opacity:0; pointer-events:none; }
 
@@ -185,7 +229,16 @@
   <div id="splash">
     <div class="t">LIMINAL</div>
     <div class="sub">level 0 — the backrooms</div>
-    <div class="click-prompt">[ click to enter ]</div>
+    <div class="ca-line">CA: coming soon</div>
+
+    <!-- Solana address gate -->
+    <div id="sol-gate">
+      <label>ENTER SOLANA ADDRESS TO PROCEED</label>
+      <input id="sol-input" type="text" placeholder="e.g. 5Kd3...8Lf" autocomplete="off" spellcheck="false"/>
+      <div id="sol-error"></div>
+      <button id="sol-enter">[ ENTER ]</button>
+    </div>
+
     <div class="hint">
       WASD — move &nbsp;|&nbsp; MOUSE — look &nbsp;|&nbsp; SHIFT — run<br/>
       you noclipped out of reality
@@ -221,6 +274,38 @@
     SHIFT — RUN
   </div>
 
+  <script>
+    // Solana address validation — base58, 32-44 chars
+    const BASE58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    const solInput  = document.getElementById('sol-input');
+    const solError  = document.getElementById('sol-error');
+    const solEnter  = document.getElementById('sol-enter');
+    const solGate   = document.getElementById('sol-gate');
+    const splashEl  = document.getElementById('splash');
+
+    // Allow enter key in input
+    solInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter') solEnter.click();
+      solError.textContent = '';
+    });
+
+    // Validate + unlock on button click
+    solEnter.addEventListener('click', () => {
+      const addr = solInput.value.trim();
+      if(!BASE58.test(addr)) {
+        solError.textContent = 'invalid address — try again';
+        solInput.focus();
+        return;
+      }
+      // Valid — hide the gate, enable pointer lock click on the full splash
+      solError.textContent = '';
+      solGate.style.display = 'none';
+      // Store so game.js can read if needed
+      window._solAddr = addr;
+      // Trigger pointer lock (game.js listens for click on #splash)
+      splashEl.click();
+    });
+  </script>
   <script type="module" src="game.js"></script>
 </body>
 </html>
