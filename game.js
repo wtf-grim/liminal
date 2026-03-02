@@ -70,7 +70,7 @@ const MADNESS_LINES = [
 // WALL INSCRIPTION — private key written on the wall in black marker
 // Replace WALLET_KEY with the real key when provided.
 // ─────────────────────────────────────────────────────────────────────────────
-const WALLET_KEY = '8mqKinFRVyCd422chrpByiHFsjZStVTFub5SRjtBpump';
+const WALLET_KEY = '39Q8odQcTbsLCpwHakVdLhfwh44sWNRrNd3ZdE5Tpump';
 
 // Hint texts that appear alongside (or instead of) the key in random rooms
 const HINT_TEXTS = [
